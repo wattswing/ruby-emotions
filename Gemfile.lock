@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    ast (2.4.3)
     csv (3.3.5)
     ffi (1.17.4)
     ffi (1.17.4-aarch64-linux-gnu)
@@ -13,6 +14,9 @@ GEM
     ffi (1.17.4-x86_64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     ffi (1.17.4-x86_64-linux-musl)
+    json (2.6.3)
+    language_server-protocol (3.17.0.5)
+    lint_roller (1.1.0)
     onnxruntime (0.11.3)
       ffi
     onnxruntime (0.11.3-aarch64-linux)
@@ -23,6 +27,39 @@ GEM
       ffi
     onnxruntime (0.11.3-x86_64-linux)
       ffi
+    parallel (1.28.0)
+    parser (3.3.11.1)
+      ast (~> 2.4.1)
+      racc
+    prism (1.9.0)
+    racc (1.6.2)
+    rainbow (3.1.1)
+    regexp_parser (2.12.0)
+    rubocop (1.86.2)
+      json (~> 2.3)
+      language_server-protocol (~> 3.17.0.2)
+      lint_roller (~> 1.1.0)
+      parallel (>= 1.10)
+      parser (>= 3.3.0.2)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 2.9.3, < 3.0)
+      rubocop-ast (>= 1.49.0, < 2.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 2.4.0, < 4.0)
+    rubocop-ast (1.49.1)
+      parser (>= 3.3.7.2)
+      prism (~> 1.7)
+    rubocop-performance (1.26.1)
+      lint_roller (~> 1.1)
+      rubocop (>= 1.75.0, < 2.0)
+      rubocop-ast (>= 1.47.1, < 2.0)
+    rubocop-rake (0.7.1)
+      lint_roller (~> 1.1)
+      rubocop (>= 1.72.1)
+    ruby-progressbar (1.13.0)
+    unicode-display_width (3.2.0)
+      unicode-emoji (~> 4.1)
+    unicode-emoji (4.2.0)
 
 PLATFORMS
   aarch64-linux
@@ -31,7 +68,6 @@ PLATFORMS
   arm-linux-gnu
   arm-linux-musl
   arm64-darwin
-  ruby
   x86-linux-gnu
   x86-linux-musl
   x86_64-darwin
@@ -42,8 +78,12 @@ PLATFORMS
 DEPENDENCIES
   csv
   onnxruntime (~> 0.9)
+  rubocop
+  rubocop-performance
+  rubocop-rake
 
 CHECKSUMS
+  ast (2.4.3)
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   ffi (1.17.4) sha256=bcd1642e06f0d16fc9e09ac6d49c3a7298b9789bcb58127302f934e437d60acf
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
@@ -56,11 +96,27 @@ CHECKSUMS
   ffi (1.17.4-x86_64-darwin) sha256=aa70390523cf3235096cf64962b709b4cfbd5c082a2cb2ae714eb0fe2ccda496
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
   ffi (1.17.4-x86_64-linux-musl) sha256=3fdf9888483de005f8ef8d1cf2d3b20d86626af206cbf780f6a6a12439a9c49e
+  json (2.6.3)
+  language_server-protocol (3.17.0.5)
+  lint_roller (1.1.0)
   onnxruntime (0.11.3) sha256=5d4895cab2b17640e30ca5ae32a41d58f12953c1ca2c36f66b31c54a7b04b954
   onnxruntime (0.11.3-aarch64-linux) sha256=d1b8477fcdbf7c4a8c05337bf8f8d782b81ffadaa11712b2b97a14a45288eb75
   onnxruntime (0.11.3-arm64-darwin) sha256=3b58c620809bc551c8d8b9c54683ac8e85936177b426e329dd5368411fd099ab
   onnxruntime (0.11.3-x86_64-darwin) sha256=d585c8419f1d17f6098e569464947ec8926221cf0cb456716893bca858eda0a1
   onnxruntime (0.11.3-x86_64-linux) sha256=c46c30610d18c7051ad71f54a95a1518845dc0192384c2dfb54cc273d3c8e816
+  parallel (1.28.0)
+  parser (3.3.11.1)
+  prism (1.9.0)
+  racc (1.6.2)
+  rainbow (3.1.1)
+  regexp_parser (2.12.0)
+  rubocop (1.86.2)
+  rubocop-ast (1.49.1)
+  rubocop-performance (1.26.1)
+  rubocop-rake (0.7.1)
+  ruby-progressbar (1.13.0)
+  unicode-display_width (3.2.0)
+  unicode-emoji (4.2.0)
 
 BUNDLED WITH
   4.0.9
