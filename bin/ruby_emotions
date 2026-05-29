@@ -1,0 +1,72 @@
+#!/usr/bin/env ruby
+ENV["BUNDLE_GEMFILE"] = File.expand_path("../Gemfile", __dir__)
+require "bundler/setup"
+
+require_relative "../lib/audio_capture"
+require_relative "../lib/audio_utils"
+require_relative "../lib/yamnet"
+require_relative "../lib/emotion_detector"
+require_relative "../lib/renderer"
+
+MODEL_DIR = File.expand_path("../models", __dir__)
+VOCAL_BUCKETS = %w[Laughter Crying Singing].freeze
+
+def check_models!(dir)
+  required = %w[yamnet.onnx yamnet_class_map.csv wav2vec2_emotion_int8.onnx]
+  missing = required.reject { |f| File.exist?(File.join(dir, f)) }
+  return if missing.empty?
+
+  $stderr.puts "Missing models: #{missing.join(", ")}"
+  $stderr.puts "Run ./setup.sh first to download them."
+  exit 1
+end
+
+check_models!(MODEL_DIR)
+
+print "\e[?25l\e[2J\e[H"
+puts "  Loading models..."
+
+yamnet = YamNet.new(
+  model_path: File.join(MODEL_DIR, "yamnet.onnx"),
+  class_map_path: File.join(MODEL_DIR, "yamnet_class_map.csv")
+)
+
+emotion_detector = EmotionDetector.new(
+  model_path: File.join(MODEL_DIR, "wav2vec2_emotion_int8.onnx")
+)
+
+capture = AudioCapture.new(window: 2.0, stride: 0.5)
+history = []
+current_result = nil
+current_emotion = nil
+stopping = false
+
+Signal.trap("INT") { stopping = true }
+
+capture.start
+sleep 0.1 until capture.ready? || stopping
+
+until stopping
+  samples = capture.read_window
+  next if samples.empty?
+
+  result = yamnet.classify(samples)
+  bucket = result[:bucket]
+  vocal = bucket.is_speech || VOCAL_BUCKETS.include?(bucket.name)
+  emotion = vocal ? emotion_detector.detect(samples, bucket_name: bucket.name.downcase, speech_confidence: result[:score]) : nil
+
+  if current_result
+    history.unshift([current_result, current_emotion])
+    history = history.first(Renderer::HISTORY_SIZE)
+  end
+
+  current_result = result
+  current_emotion = emotion
+
+  Renderer.render(current_result, current_emotion, history)
+  sleep 0.5
+end
+
+capture.stop
+print "\e[?25h"
+puts "\n👋 Bye!"
