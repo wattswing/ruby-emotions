@@ -1,4 +1,6 @@
-require "io/console"
+# frozen_string_literal: true
+
+require 'io/console'
 
 module Renderer
   BOX_INNER = 48
@@ -14,21 +16,21 @@ module Renderer
 
   def bar(ratio)
     filled = (ratio * BAR_WIDTH).round
-    "█" * filled + "░" * (BAR_WIDTH - filled)
+    ('█' * filled) + ('░' * (BAR_WIDTH - filled))
   end
 
   def center(text, width)
-    stripped = text.gsub(/\e\[[0-9;]*m/, "")
+    stripped = text.gsub(/\e\[[0-9;]*m/, '')
     pad = [(width - stripped.length) / 2, 0].max
-    " " * pad + text
+    (' ' * pad) + text
   end
 
   def truncate(str, max)
-    str.length > max ? "#{str[0...max - 1]}…" : str
+    str.length > max ? "#{str[0...(max - 1)]}…" : str
   end
 
   def vpad(str, target)
-    str + " " * [target - str.length, 0].max
+    str + (' ' * [target - str.length, 0].max)
   end
 
   def format_label(result, emotion)
@@ -51,11 +53,14 @@ module Renderer
   end
 
   def render_current_box(result, emotion, w)
-    top    = "┌#{"─" * BOX_INNER}┐"
-    bottom = "└#{"─" * BOX_INNER}┘"
-    blank  = "│#{" " * BOX_INNER}│"
+    top    = "┌#{'─' * BOX_INNER}┐"
+    bottom = "└#{'─' * BOX_INNER}┘"
+    blank  = "│#{' ' * BOX_INNER}│"
 
-    return [center(top, w), center("│#{"⏳  Waiting for audio...".center(BOX_INNER)}│", w), center(bottom, w)] unless result
+    unless result
+      return [center(top, w), center("│#{'⏳  Waiting for audio...'.center(BOX_INNER)}│", w),
+              center(bottom, w)]
+    end
 
     row1 = "#{format_label(result, emotion)}  #{format_bar(result, emotion)}"
     sub  = format_sub(result)
@@ -66,7 +71,7 @@ module Renderer
       center("│  #{vpad(row1, BOX_INNER - 3)}│", w),
       center("│  #{vpad(sub, BOX_INNER - 3)}│", w),
       center(blank, w),
-      center(bottom, w),
+      center(bottom, w)
     ]
   end
 
@@ -80,37 +85,37 @@ module Renderer
 
     [
       center("#{idx}. ┌ #{vpad(row1, cell_inner)} ┐", w),
-      center("   └ #{vpad(sub, cell_inner)} ┘", w),
+      center("   └ #{vpad(sub, cell_inner)} ┘", w)
     ]
   end
 
   def render(current_result, current_emotion, history)
     h, w = terminal_size
-    separator = "═" * [BOX_INNER + 4, 40].max
+    separator = '═' * [BOX_INNER + 4, 40].max
 
     content = []
-    content << center("🎤  ruby_emotions — Live Audio Sound Detection", w)
+    content << center('🎤  ruby_emotions — Live Audio Sound Detection', w)
     content << center(separator, w)
-    content << ""
+    content << ''
     content.concat(render_current_box(current_result, current_emotion, w))
-    content << ""
+    content << ''
 
     if history.empty?
-      content << center("(listening...)", w)
+      content << center('(listening...)', w)
     else
       history.each_with_index do |(res, emo), i|
         content.concat(render_history_cell(i + 1, res, emo, w))
       end
     end
 
-    content << ""
+    content << ''
     content << center(separator, w)
-    content << center("Ctrl+C to stop", w)
+    content << center('Ctrl+C to stop', w)
 
     top_pad = [(h - content.length) / 2, 0].max
 
     print "\e[H\e[J"
-    top_pad.times { puts "" }
+    top_pad.times { puts '' }
     puts content.join("\n")
     $stdout.flush
   end

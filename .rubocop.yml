@@ -1,0 +1,74 @@
+plugins:
+  - rubocop-performance
+  - rubocop-rake
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.2
+
+Style:
+  Enabled:
+    - Style/FrozenStringLiteralComment
+    - Style/HashSyntax
+    - Style/SymbolArray
+    - Style/TrailingCommaInArguments
+    - Style/TrailingCommaInArray
+    - Style/TrailingCommaInHash
+  FrozenStringLiteralComment:
+    EnforcedStyle: always
+
+Metrics:
+  Enabled:
+    - Metrics/BlockLength
+    - Metrics/ClassLength
+    - Metrics/CyclomaticComplexity
+    - Metrics/MethodLength
+    - Metrics/ModuleLength
+  BlockLength:
+    ExcludedMethods:
+      - describe
+      - context
+    ExcludedBlocks:
+      - block
+  ClassLength:
+    Max: 150
+  MethodLength:
+    Max: 25
+  ModuleLength:
+    Max: 150
+  AbcSize:
+    Max: 30
+
+Layout:
+  Enabled:
+    - Layout/ArgumentAlignment
+    - Layout/ArrayAlignment
+    - Layout/EmptyLineBetweenDefs
+    - Layout/ExtraSpacing
+    - Layout/FirstArgumentIndentation
+    - Layout/FirstArrayElementIndentation
+    - Layout/FirstHashElementIndentation
+    - Layout/HashAlignment
+    - Layout/IndentationConsistency
+    - Layout/IndentationWidth
+    - Layout/MultilineArrayBraceLayout
+    - Layout/MultilineMethodCallIndentation
+  IndentationWidth: 2
+
+Naming:
+  Enabled:
+    - Naming/MethodName
+    - Naming/PredicateName
+  Naming/MethodParameterName:
+    MinNameLength: 2
+
+Performance:
+  Enabled: true
+
+Lint:
+  Enabled:
+    - Lint/AssignmentInCondition
+    - Lint/ConstantDefinitionInBlock
+    - Lint/DeprecatedClassMethods
+    - Lint/LambdaWithoutLiteralBlock
+    - Lint/RedundantStringEscape

@@ -1,5 +1,7 @@
-require "onnxruntime"
-require "csv"
+# frozen_string_literal: true
+
+require 'onnxruntime'
+require 'csv'
 
 class YamNet
   Bucket = Data.define(:name, :emoji, :is_speech)
@@ -20,23 +22,23 @@ class YamNet
   }.freeze
 
   KEYWORD_BUCKETS = [
-    [:laughter,   %w[laughter baby\ laughter giggle chuckle snicker]],
+    [:laughter,   ['laughter', 'baby laughter', 'giggle', 'chuckle', 'snicker']],
     [:crying,     %w[crying sobbing whimper wail]],
     [:shouting,   %w[shout screaming yell scream]],
     [:whispering, %w[whispering]],
     [:singing,    %w[singing choir chant humming beatboxing]],
-    [:speech,     ["speech", "narration", "monologue", "conversation",
-                   "male speech", "female speech", "child speech"]],
-    [:applause,   %w[clapping finger\ snapping applause]],
+    [:speech,     ['speech', 'narration', 'monologue', 'conversation',
+                   'male speech', 'female speech', 'child speech']],
+    [:applause,   ['clapping', 'finger snapping', 'applause']],
     [:cheering,   %w[cheering whoop]],
-    [:music,      ["music", "song", "guitar", "piano", "drum",
-                   "musical instrument", "orchestra", "bass", "synthesizer",
-                   "hip hop", "jazz", "rock", "pop", "electronic music",
-                   "reggae", "blues", "folk music", "country", "flamenco",
-                   "violin", "cello", "flute", "trumpet", "harmonica",
-                   "organ", "banjo", "sitar", "ukulele", "mandolin"]],
+    [:music,      ['music', 'song', 'guitar', 'piano', 'drum',
+                   'musical instrument', 'orchestra', 'bass', 'synthesizer',
+                   'hip hop', 'jazz', 'rock', 'pop', 'electronic music',
+                   'reggae', 'blues', 'folk music', 'country', 'flamenco',
+                   'violin', 'cello', 'flute', 'trumpet', 'harmonica',
+                   'organ', 'banjo', 'sitar', 'ukulele', 'mandolin']],
     [:silence,    %w[silence]],
-    [:crowd,      ["chatter", "hubbub", "crowd", "children shouting"]],
+    [:crowd,      ['chatter', 'hubbub', 'crowd', 'children shouting']]
   ].freeze
 
   def initialize(model_path:, class_map_path:)
@@ -52,17 +54,17 @@ class YamNet
     top_idx = avg_scores.each_index.max_by { |i| avg_scores[i] }
 
     {
-      class_name: @class_map[top_idx] || "Unknown",
+      class_name: @class_map[top_idx] || 'Unknown',
       score: avg_scores[top_idx],
-      bucket: @bucket_cache[top_idx] || BUCKETS[:other],
+      bucket: @bucket_cache[top_idx] || BUCKETS[:other]
     }
   end
 
   private
 
   def load_class_map(path)
-    CSV.foreach(path, headers: true).each_with_object({}) do |row, map|
-      map[row["index"].to_i] = row["display_name"]
+    CSV.foreach(path, headers: true).to_h do |row|
+      [row['index'].to_i, row['display_name']]
     end
   end
 

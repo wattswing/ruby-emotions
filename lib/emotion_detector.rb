@@ -44,7 +44,7 @@ class EmotionDetector
     if speech_confidence < SPEECH_CONFIDENCE_FLOOR
       return {
         emotion: NEUTRAL_EMOTION.label, emoji: NEUTRAL_EMOTION.emoji,
-        confidence: speech_confidence, base_emotion: "NEUTRAL", composite: false,
+        confidence: speech_confidence, base_emotion: 'NEUTRAL', composite: false
       }
     end
 
@@ -64,7 +64,7 @@ class EmotionDetector
       emoji: display.emoji,
       confidence: probs[top_idx],
       base_emotion: base_emotion.label,
-      composite: !!composite,
+      composite: !composite.nil?
     }
   end
 

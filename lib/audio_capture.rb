@@ -1,4 +1,6 @@
-require_relative "audio_utils"
+# frozen_string_literal: true
+
+require_relative 'audio_utils'
 
 class AudioCapture
   attr_reader :window_duration, :stride
@@ -21,7 +23,7 @@ class AudioCapture
 
   def start
     ffmpeg_cmd = build_ffmpeg_command
-    @process = IO.popen(ffmpeg_cmd, "rb")
+    @process = IO.popen(ffmpeg_cmd, 'rb')
     @running = true
     @thread = Thread.new { capture_loop }
   end
@@ -59,17 +61,17 @@ class AudioCapture
 
   def trim_buffer_to_window
     overflow = @buffer.length - @window_samples
-    @buffer.shift(overflow) if overflow > 0
+    @buffer.shift(overflow) if overflow.positive?
   end
 
   def build_ffmpeg_command
     [
-      "ffmpeg", "-loglevel", "quiet",
+      'ffmpeg', '-loglevel', 'quiet',
       *audio_input_args,
-      "-ar", SAMPLE_RATE.to_s,
-      "-ac", "1",
-      "-f", "s16le",
-      "pipe:1"
+      '-ar', SAMPLE_RATE.to_s,
+      '-ac', '1',
+      '-f', 's16le',
+      'pipe:1'
     ]
   end
 
@@ -87,13 +89,21 @@ class AudioCapture
   end
 
   def pulse_audio?
-    system("pactl info >/dev/null 2>&1")
+    system('pactl info >/dev/null 2>&1')
   end
 
   def terminate_process
     @process&.tap do |p|
-      Process.kill("TERM", p.pid) rescue nil
-      p.close rescue nil
+      begin
+        Process.kill('TERM', p.pid)
+      rescue StandardError
+        nil
+      end
+      begin
+        p.close
+      rescue StandardError
+        nil
+      end
     end
   end
 end

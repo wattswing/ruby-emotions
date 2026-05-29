@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module AudioUtils
   SAMPLE_RATE = 16_000
   BYTES_PER_SAMPLE = 2
@@ -5,16 +7,19 @@ module AudioUtils
   module_function
 
   def pcm_to_floats(raw_bytes)
-    raw_bytes.unpack("s<*").map { |s| s / 32_768.0 }
+    raw_bytes.unpack('s<*').map { |s| s / 32_768.0 }
   end
 
   def normalize(samples)
     n = samples.length.to_f
     sum = 0.0
     sum_sq = 0.0
-    samples.each { |s| sum += s; sum_sq += s * s }
+    samples.each do |s|
+      sum += s
+      sum_sq += s * s
+    end
     mean = sum / n
-    variance = (sum_sq / n - mean * mean).abs
+    variance = ((sum_sq / n) - (mean * mean)).abs
     std = Math.sqrt(variance)
     return Array.new(samples.length, 0.0) if std < 1e-7
 
