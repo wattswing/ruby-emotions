@@ -1,8 +1,16 @@
 require_relative "audio_utils"
 
 class AudioCapture
-  def initialize(window: 2.0, stride: 0.5)
-    @window_samples = (AudioUtils::SAMPLE_RATE * window).to_i
+  attr_reader :window_duration, :stride
+
+  SAMPLE_RATE = AudioUtils::SAMPLE_RATE
+  DEFAULT_WINDOW = 2.0
+  DEFAULT_STRIDE = 0.5
+
+  def initialize(window: DEFAULT_WINDOW, stride: DEFAULT_STRIDE)
+    @window_duration = window
+    @stride = stride
+    @window_samples = (SAMPLE_RATE * window).to_i
     @stride_bytes = AudioUtils.chunk_byte_size(duration: stride)
     @buffer = []
     @mutex = Mutex.new
@@ -12,17 +20,9 @@ class AudioCapture
   end
 
   def start
-    cmd = [
-      "ffmpeg", "-loglevel", "quiet",
-      *platform_input_args,
-      "-ar", AudioUtils::SAMPLE_RATE.to_s,
-      "-ac", "1",
-      "-f", "s16le",
-      "pipe:1"
-    ]
-    @process = IO.popen(cmd, "rb")
+    ffmpeg_cmd = build_ffmpeg_command
+    @process = IO.popen(ffmpeg_cmd, "rb")
     @running = true
-
     @thread = Thread.new { capture_loop }
   end
 
@@ -38,10 +38,7 @@ class AudioCapture
     @running = false
     @thread&.join(1)
     @thread = nil
-    @process&.tap do |p|
-      Process.kill("TERM", p.pid) rescue nil
-      p.close rescue nil
-    end
+    terminate_process
     @process = nil
   end
 
@@ -55,22 +52,48 @@ class AudioCapture
       samples = AudioUtils.pcm_to_floats(raw)
       @mutex.synchronize do
         @buffer.concat(samples)
-        overflow = @buffer.length - @window_samples
-        @buffer.shift(overflow) if overflow > 0
+        trim_buffer_to_window
       end
     end
   end
 
-  def platform_input_args
+  def trim_buffer_to_window
+    overflow = @buffer.length - @window_samples
+    @buffer.shift(overflow) if overflow > 0
+  end
+
+  def build_ffmpeg_command
+    [
+      "ffmpeg", "-loglevel", "quiet",
+      *audio_input_args,
+      "-ar", SAMPLE_RATE.to_s,
+      "-ac", "1",
+      "-f", "s16le",
+      "pipe:1"
+    ]
+  end
+
+  def audio_input_args
     case RUBY_PLATFORM
-    when /darwin/  then ["-f", "avfoundation", "-i", ":default"]
-    when /linux/   then pulse? ? ["-f", "pulse", "-i", "default"] : ["-f", "alsa", "-i", "default"]
-    when /mingw|mswin|cygwin/ then ["-f", "dshow", "-i", "audio=Microphone"]
-    else raise "Unsupported platform: #{RUBY_PLATFORM}. Provide ffmpeg input args manually."
+    when /darwin/
+      %w[-f avfoundation -i :default]
+    when /linux/
+      pulse_audio? ? %w[-f pulse -i default] : %w[-f alsa -i default]
+    when /mingw|mswin|cygwin/
+      %w[-f dshow -i audio=Microphone]
+    else
+      raise "Unsupported platform: #{RUBY_PLATFORM}"
     end
   end
 
-  def pulse?
+  def pulse_audio?
     system("pactl info >/dev/null 2>&1")
+  end
+
+  def terminate_process
+    @process&.tap do |p|
+      Process.kill("TERM", p.pid) rescue nil
+      p.close rescue nil
+    end
   end
 end
