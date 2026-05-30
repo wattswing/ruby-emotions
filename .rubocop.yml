@@ -6,6 +6,9 @@ AllCops:
   NewCops: enable
   TargetRubyVersion: 3.2
 
+Metrics/ModuleLength:
+  Max: 150
+
 Style:
   Enabled:
     - Style/FrozenStringLiteralComment

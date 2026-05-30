@@ -3,6 +3,7 @@
 require 'onnxruntime'
 require 'csv'
 
+# Classifies audio into sound buckets using YAMNet ONNX model
 class YamNet
   Bucket = Data.define(:name, :emoji, :is_speech)
 

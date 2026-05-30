@@ -2,6 +2,7 @@
 
 require_relative 'audio_utils'
 
+# Captures audio from system microphone via ffmpeg
 class AudioCapture
   attr_reader :window_duration, :stride
 
@@ -21,6 +22,7 @@ class AudioCapture
     @running = false
   end
 
+  # Start audio capture in background thread
   def start
     ffmpeg_cmd = build_ffmpeg_command
     @process = IO.popen(ffmpeg_cmd, 'rb')
@@ -28,10 +30,12 @@ class AudioCapture
     @thread = Thread.new { capture_loop }
   end
 
+  # Read current audio window samples
   def read_window
     @mutex.synchronize { @buffer.dup }
   end
 
+  # Check if buffer has enough samples for a window
   def ready?
     @mutex.synchronize { @buffer.length >= @window_samples }
   end
@@ -94,16 +98,20 @@ class AudioCapture
 
   def terminate_process
     @process&.tap do |p|
-      begin
-        Process.kill('TERM', p.pid)
-      rescue StandardError
-        nil
-      end
-      begin
-        p.close
-      rescue StandardError
-        nil
-      end
+      send_signal(p)
+      close_process(p)
     end
+  end
+
+  def send_signal(process)
+    Process.kill('TERM', process.pid)
+  rescue StandardError
+    nil
+  end
+
+  def close_process(process)
+    process.close
+  rescue StandardError
+    nil
   end
 end

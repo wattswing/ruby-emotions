@@ -2,6 +2,7 @@
 
 require 'io/console'
 
+# Renders audio emotion detection results to terminal
 module Renderer
   BOX_INNER = 48
   BAR_WIDTH = 15
@@ -42,9 +43,14 @@ module Renderer
   end
 
   def format_bar(result, emotion)
-    ratio = emotion ? emotion[:confidence] : result[:score]
+    ratio = confidence_ratio(result, emotion)
     pct = (ratio * 100).round(1)
     "#{bar(ratio)}  #{pct.to_s.rjust(5)}%"
+  end
+
+  # Use emotion confidence if available, otherwise use bucket score
+  def confidence_ratio(result, emotion)
+    emotion ? emotion[:confidence] : result[:score]
   end
 
   def format_sub(result)
@@ -52,71 +58,113 @@ module Renderer
     "#{result[:bucket].emoji}  #{result[:class_name]} (#{pct}%)"
   end
 
-  def render_current_box(result, emotion, w)
-    top    = "┌#{'─' * BOX_INNER}┐"
-    bottom = "└#{'─' * BOX_INNER}┘"
-    blank  = "│#{' ' * BOX_INNER}│"
+  def render_current_box(result, emotion, width)
+    return waiting_box_content(width) unless result
 
-    unless result
-      return [center(top, w), center("│#{'⏳  Waiting for audio...'.center(BOX_INNER)}│", w),
-              center(bottom, w)]
-    end
+    build_box_lines(result, emotion, width)
+      .map { |line| center(line, width) }
+      .map { |line| "│#{line}│" }
+      .map { |line| "  #{vpad(line, BOX_INNER - 3)}  " }
+  end
 
-    row1 = "#{format_label(result, emotion)}  #{format_bar(result, emotion)}"
-    sub  = format_sub(result)
+  def build_box_lines(result, emotion, width)
+    return waiting_box_content(width) if result.nil?
 
     [
-      center(top, w),
-      center(blank, w),
-      center("│  #{vpad(row1, BOX_INNER - 3)}│", w),
-      center("│  #{vpad(sub, BOX_INNER - 3)}│", w),
-      center(blank, w),
-      center(bottom, w)
+      top_box_content,
+      blank_line,
+      row1_content(result, emotion),
+      sub_content(result),
+      blank_line,
+      bottom_box_content
     ]
   end
 
-  def render_history_cell(idx, result, emotion, w)
-    cell_inner = BOX_INNER - 6
+  def waiting_box_content(_width)
+    waiting = '⏳  Waiting for audio...'.center(BOX_INNER)
+    [top_box_content, "│#{waiting}│", bottom_box_content]
+  end
+
+  def top_box_content
+    "┌#{'─' * BOX_INNER}┐"
+  end
+
+  def bottom_box_content
+    "└#{'─' * BOX_INNER}┘"
+  end
+
+  def blank_line
+    "│#{' ' * BOX_INNER}│"
+  end
+
+  def row1_content(result, emotion)
     label = format_label(result, emotion)
-    ratio = emotion ? emotion[:confidence] : result[:score]
+    bar_line = format_bar(result, emotion)
+    "#{label}  #{bar_line}"
+  end
+
+  def sub_content(result)
+    format_sub(result)
+  end
+
+  def render_history_cell(index, result, emotion, width)
+    cell = BOX_INNER - 6
+    label = format_label(result, emotion)
+    ratio = confidence_ratio(result, emotion)
     pct = (ratio * 100).round(1)
     row1 = "#{label}  #{bar(ratio)}  #{pct.to_s.rjust(5)}%"
-    sub  = format_sub(result)
+    sub = format_sub(result)
 
     [
-      center("#{idx}. ┌ #{vpad(row1, cell_inner)} ┐", w),
-      center("   └ #{vpad(sub, cell_inner)} ┘", w)
+      center("#{index}. ┌ #{vpad(row1, cell)} ┐", width),
+      center("   └ #{vpad(sub, cell)} ┘", width)
     ]
   end
 
   def render(current_result, current_emotion, history)
-    h, w = terminal_size
+    height, width = terminal_size
     separator = '═' * [BOX_INNER + 4, 40].max
 
-    content = []
-    content << center('🎤  ruby_emotions — Live Audio Sound Detection', w)
-    content << center(separator, w)
-    content << ''
-    content.concat(render_current_box(current_result, current_emotion, w))
-    content << ''
-
-    if history.empty?
-      content << center('(listening...)', w)
-    else
-      history.each_with_index do |(res, emo), i|
-        content.concat(render_history_cell(i + 1, res, emo, w))
-      end
-    end
-
-    content << ''
-    content << center(separator, w)
-    content << center('Ctrl+C to stop', w)
-
-    top_pad = [(h - content.length) / 2, 0].max
+    content = render_content(separator, width, current_result, current_emotion, history)
+    top_pad = [(height - content.length) / 2, 0].max
 
     print "\e[H\e[J"
     top_pad.times { puts '' }
     puts content.join("\n")
     $stdout.flush
+  end
+
+  def render_content(separator, width, current_result, current_emotion, history)
+    build_header(separator, width) +
+      build_current_box(width, current_result, current_emotion) +
+      build_history_section(width, history) +
+      build_footer(separator, width)
+  end
+
+  def build_header(separator, width)
+    [
+      center('🎤  ruby_emotions — Live Audio Sound Detection', width),
+      center(separator, width),
+      ''
+    ]
+  end
+
+  def build_current_box(width, result, emotion)
+    ['', render_current_box(result, emotion, width), '']
+  end
+
+  def build_history_section(width, history)
+    if history.empty?
+      [center('(listening...)', width)]
+    else
+      history_with_index = history.each_with_index.to_a
+      history_with_index.flat_map do |(res, emo), i|
+        render_history_cell(i + 1, res, emo, width)
+      end
+    end
+  end
+
+  def build_footer(separator, width)
+    ['', center(separator, width), center('Ctrl+C to stop', width)]
   end
 end

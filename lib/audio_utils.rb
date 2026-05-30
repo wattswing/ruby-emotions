@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Audio processing utilities for ruby_emotions
 module AudioUtils
   SAMPLE_RATE = 16_000
   BYTES_PER_SAMPLE = 2
@@ -11,22 +12,22 @@ module AudioUtils
   end
 
   def normalize(samples)
-    n = samples.length.to_f
-    sum = 0.0
-    sum_sq = 0.0
-    samples.each do |s|
-      sum += s
-      sum_sq += s * s
-    end
-    mean = sum / n
-    variance = ((sum_sq / n) - (mean * mean)).abs
-    std = Math.sqrt(variance)
-    return Array.new(samples.length, 0.0) if std < 1e-7
+    mean = samples.sum / samples.length.to_f
+    std = samples_std(samples, mean)
+    return zero_array(samples) if std < 1e-7
 
     samples.map { |s| (s - mean) / std }
   end
 
   def chunk_byte_size(duration:)
     (SAMPLE_RATE * BYTES_PER_SAMPLE * duration).to_i
+  end
+
+  def samples_std(samples, mean)
+    Math.sqrt(samples.sum { |s| (s - mean)**2 } / samples.length)
+  end
+
+  def zero_array(samples)
+    Array.new(samples.length, 0.0)
   end
 end

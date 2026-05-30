@@ -1,9 +1,13 @@
-require "onnxruntime"
-require_relative "audio_utils"
+# frozen_string_literal: true
 
+require 'onnxruntime'
+require_relative 'audio_utils'
+
+# Detects emotions from audio samples using ONNX model
 class EmotionDetector
   Emotion = Data.define(:label, :emoji)
 
+  # Predefined emotion mappings with emoji icons
   EMOTIONS = {
     0 => Emotion.new(label: "SAD",     emoji: "😢"),
     1 => Emotion.new(label: "ANGRY",   emoji: "😠"),
@@ -16,6 +20,7 @@ class EmotionDetector
   NEUTRAL_EMOTION = Emotion.new(label: "NEUTRAL", emoji: "😐")
   SPEECH_CONFIDENCE_FLOOR = 0.5
 
+  # Composite emotions for bucket + base emotion combinations
   COMPOSITE = {
     %w[laughter HAPPY]     => Emotion.new(label: "Hilarious!",  emoji: "🤣"),
     %w[laughter SAD]       => Emotion.new(label: "Bittersweet", emoji: "🥲"),
@@ -40,25 +45,58 @@ class EmotionDetector
     @input_name = @session.inputs.first[:name]
   end
 
+  # Detect emotion from audio samples with optional bucket classification
   def detect(float_samples, bucket_name: nil, speech_confidence: 1.0)
-    if speech_confidence < SPEECH_CONFIDENCE_FLOOR
-      return {
-        emotion: NEUTRAL_EMOTION.label, emoji: NEUTRAL_EMOTION.emoji,
-        confidence: speech_confidence, base_emotion: 'NEUTRAL', composite: false
-      }
-    end
+    return neutral_result(speech_confidence) if low_speech_confidence?(speech_confidence)
 
-    normalized = AudioUtils.normalize(float_samples)
-    outputs = @session.run(nil, { @input_name => [normalized] })
-    logits = outputs[0][0]
-
+    logits = run_inference(float_samples)
     probs = softmax(logits)
-    top_idx = probs.each_index.max_by { |i| probs[i] }
+    top_idx = find_top_emotion(probs)
     base_emotion = EMOTIONS[top_idx]
 
-    composite = bucket_name && COMPOSITE[[bucket_name, base_emotion.label]]
-    display = composite || base_emotion
+    composite_emotion = bucket_name ? composite_for(bucket_name, base_emotion.label) : nil
+    display = composite_emotion || base_emotion
 
+    result(probs, top_idx, base_emotion, composite_emotion, display)
+  end
+
+  private
+
+  def neutral_result(confidence)
+    {
+      emotion: NEUTRAL_EMOTION.label,
+      emoji: NEUTRAL_EMOTION.emoji,
+      confidence: confidence,
+      base_emotion: 'NEUTRAL',
+      composite: false
+    }
+  end
+
+  def low_speech_confidence?(confidence)
+    confidence < SPEECH_CONFIDENCE_FLOOR
+  end
+
+  def run_inference(samples)
+    normalized = AudioUtils.normalize(samples)
+    outputs = @session.run(nil, { @input_name => [normalized] })
+    outputs[0][0]
+  end
+
+  def softmax(logits)
+    max = logits.max
+    exps = logits.map { |l| Math.exp(l - max) }
+    exps.sum.then { |sum| exps.map { |e| e / sum } }
+  end
+
+  def find_top_emotion(probs)
+    probs.each_index.max_by { |i| probs[i] }
+  end
+
+  def composite_for(bucket, base)
+    COMPOSITE[[bucket, base]]
+  end
+
+  def result(probs, top_idx, base_emotion, composite, display)
     {
       emotion: display.label,
       emoji: display.emoji,
@@ -66,14 +104,5 @@ class EmotionDetector
       base_emotion: base_emotion.label,
       composite: !composite.nil?
     }
-  end
-
-  private
-
-  def softmax(logits)
-    max = logits.max
-    exps = logits.map { |l| Math.exp(l - max) }
-    sum = exps.sum
-    exps.map { |e| e / sum }
   end
 end
